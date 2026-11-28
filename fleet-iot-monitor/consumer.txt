@@ -1,0 +1,26 @@
+from kafka import KafkaConsumer
+import json
+
+# الاتصال بـ Kafka وحجز مكان الاستماع (Consumer Group) مع تصحيح الكلمة
+consumer = KafkaConsumer(
+    'fleet-telemetry',
+    bootstrap_servers=['localhost:9092'],
+    auto_offset_reset='earliest',
+    enable_auto_commit=True,
+    group_id='fleet-group-1',
+    value_deserializer=lambda x: json.loads(x.decode('utf-8')) if x else None
+)
+
+print("📥 Listening for Cold Chain Telemetry data from Kafka...")
+
+try:
+    for message in consumer:
+        data = message.value
+        device_id = data.get("device_id")
+        cargo_temp = data.get("telemetry", {}).get("cargo_temp_c")
+        
+        print(f"📥 Received -> Truck: {device_id} | Cargo Temp: {cargo_temp}°C")
+        
+except KeyboardInterrupt:
+    print("\n🛑 Consumer stopped.")
+    consumer.close()
